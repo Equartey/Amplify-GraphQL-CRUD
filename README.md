@@ -1,16 +1,15 @@
-# graphql_demo_1
+# Amplify-GraphQL-CRUD
 
-A new Flutter project.
+An Amplify Flutter GraphQL CRUD APP.
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+This app was bootstrapped using [Amplify CLI](https://docs.amplify.aws/cli)
 
-A few resources to get you started if this is your first Flutter project:
+For help getting started with Flutter, [online documentation](https://flutter.dev/docs), which offers tutorials, samples, guidance on mobile development, and a full API reference.
 
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
+## Screenshots
 
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+![Homepage_1](./docs/Homepage_1.png)
+![Homepage_2](./docs/Homepage_2.png)
+![Homepage_3](./docs/Homepage_3.png)
