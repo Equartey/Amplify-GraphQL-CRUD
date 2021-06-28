@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify.dart';
 import 'package:amplify_api/amplify_api.dart';
+import 'package:amplify_datastore_plugin_interface/amplify_datastore_plugin_interface.dart';
+import 'package:graphql_demo_1/ModelMutation.dart';
+import 'package:graphql_demo_1/ModelQuery.dart';
+import 'package:graphql_demo_1/models/ModelProvider.dart';
 
 import 'amplifyconfiguration.dart';
 import 'models/Blog.dart';
@@ -100,22 +104,74 @@ class _MyHomePageState extends State<MyHomePage> {
 
   /*
     *
-    * Get Queries
+    * Get/List Queries
     *
   */
+  
+
+  Future<Blog> _getBlog(String id) async{
+    try {
+      var operation = Amplify.API.mutate(request: ModelQuery.get(Blog.classType, id));
+      var response = await operation.response;
+
+      var data = response.data != null ? response.data : response.errors[0].message;
+
+      if(data == null)
+        data = 'null';
+      Map<String, dynamic> dataJson = json.decode(data);
+      Blog blog = Blog.fromJson(dataJson["getBlog"]);
+      print("JSON: " + dataJson.toString());
+      print("BLOG: " + blog.toString());
+      return blog;
+    } on ApiException catch(e) {
+      print(e.message);
+      return null;
+    }
+  }
+
+  Future<Post> _getPost(String id) async{
+    try {
+      var operation = Amplify.API.mutate(request: ModelQuery.get(Post.classType, id));
+      var response = await operation.response;
+
+      var data = response.data != null ? response.data : response.errors[0].message;
+
+      if(data == null)
+        data = 'null';
+      Map<String, dynamic> dataJson = json.decode(data);
+      // print("JSON: " + dataJson.toString());
+      Post post = Post.fromJson(dataJson["getPost"]);
+      // print("POST: " + post.toString());
+      return post;
+    } on ApiException catch(e) {
+      print(e.message);
+      return null;
+    }
+  }
+
+  Future<Comment> _getComment(String id) async{
+    try {
+      var operation = Amplify.API.mutate(request: ModelQuery.get(Comment.classType, id));
+      var response = await operation.response;
+
+      var data = response.data != null ? response.data : response.errors[0].message;
+
+      if(data == null)
+        data = 'null';
+      Map<String, dynamic> dataJson = json.decode(data);
+      // print("JSON: " + dataJson.toString());
+      Comment comment = Comment.fromJson(dataJson["getComment"]);
+      // print("Comment: " + Comment.toString());
+      return comment;
+    } on ApiException catch(e) {
+      print(e.message);
+      return null;
+    }
+  }
 
   void _queryBlogs() async {
     try {
-      String graphQLDocument = '''query GetBlogs {
-          listBlogs {
-            items {
-              id
-              name
-            }
-          }
-        }''';
-      var request = GraphQLRequest<String>(document: graphQLDocument);
-      var operation = Amplify.API.query(request: request);
+      var operation = Amplify.API.query(request: ModelQuery.list(Blog.classType));
       var response = await operation.response;
 
       var data = response.data != null ? response.data : response.errors[0].message;
@@ -133,7 +189,7 @@ class _MyHomePageState extends State<MyHomePage> {
         _blogTarget = blogList.first.id;
       });
       
-      print('Query Blogs: ' + data);
+      // print('Query Blogs: ' + data);
     } on ApiException catch (e) {
         print('Query Blogs failed: $e');
     }
@@ -141,16 +197,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _queryPosts() async {
     try {
-      String graphQLDocument = '''query GetPosts {
-          listPosts {
-            items {
-              id
-              title
-            }
-          }
-        }''';
-      var request = GraphQLRequest<String>(document: graphQLDocument);
-      var operation = Amplify.API.query(request: request);
+      var operation = Amplify.API.query(request: ModelQuery.list(Post.classType));
       var response = await operation.response;
 
       var data = response.data != null ? response.data : response.errors[0].message;
@@ -175,16 +222,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _queryComments() async {
     try {
-      String graphQLDocument = '''query GetComments {
-          listComments {
-            items {
-              id
-              content
-            }
-          }
-        }''';
-      var request = GraphQLRequest<String>(document: graphQLDocument);
-      var operation = Amplify.API.query(request: request);
+      var operation = Amplify.API.query(request: ModelQuery.list(Comment.classType));
       var response = await operation.response;
 
       var data = response.data != null ? response.data : response.errors[0].message;
@@ -215,19 +253,10 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _createBlog() async{
     try {
-      String graphQLDocument = '''mutation CreateBlog(\$name: String!) {
-            createBlog(input: {name: \$name}) {
-              id
-              name
-              createdAt
-            }
-          }''';
-      var variables = {
-        "name": _updateContentTextController.text,
-      };
-      var request = GraphQLRequest<String>(document: graphQLDocument, variables: variables);
 
-      var operation = Amplify.API.mutate(request: request);
+      Blog blog = Blog(name: _updateContentTextController.text);
+
+      var operation = Amplify.API.mutate(request: ModelMutation.create(blog));
       var response = await operation.response;
 
       var data = response.data != null ? response.data : response.errors[0].message;
@@ -249,23 +278,11 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _createPost() async{
     try {
-      String graphQLDocument =
-        '''mutation CreatePost(\$title: String!, \$blogId:ID!) {
-            createPost(input: {title: \$title, blogID: \$blogId}) {
-              createdAt
-              id
-              title
-            }
-          }''';
-      print("VARIABLES:" + _updateContentTextController.text + ":" + _updateContentTextController.text);
-      var variables = {
-        "title": _updateContentTextController.text,
-        "blogId": _blogTarget,
-      };
+      Blog blog = await _getBlog(_blogTarget);
 
-      var request = GraphQLRequest<String>(document: graphQLDocument, variables: variables);
+      Post post = Post(title: _updateContentTextController.text, blog: blog);      
 
-      var operation = Amplify.API.mutate(request: request);
+      var operation = Amplify.API.mutate(request: ModelMutation.create(post));
       var response = await operation.response;
 
       var data = response.data != null ? response.data : response.errors[0].message;
@@ -287,28 +304,11 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _createComment() async{
     try {
-      String graphQLDocument =
-        '''mutation CreateComment(\$content: String!, \$postId: ID!) {
-            createComment(input: {content: \$content, postID: \$postId}) {
-              id
-              content
-              post {
-                id
-                title
-                blog {
-                  id
-                  name
-                }
-              }
-            }
-          }''';
-      var variables = {
-        "content": _updateContentTextController.text,
-        "postId": _postTarget,
-      };
-      var request = GraphQLRequest<String>(document: graphQLDocument, variables: variables);
+      Post post = await _getPost(_postTarget);
+      
+      Comment comment = Comment(content: _updateContentTextController.text, post: post);
 
-      var operation = Amplify.API.mutate(request: request);
+      var operation = Amplify.API.mutate(request: ModelMutation.create(comment));
       var response = await operation.response;
 
       var data = response.data != null ? response.data : response.errors[0].message;
@@ -333,22 +333,58 @@ class _MyHomePageState extends State<MyHomePage> {
     * Update Mutations
     *
   */
+  Future<GraphQLRequest<String>> pocBlogUpdate(Blog updatedBlog) async {
+    Blog oldBlog = await _getBlog(_blogTarget);
+    Blog updatedBlog = oldBlog.copyWith(id: oldBlog.getId(), name:  _updateContentTextController.text);
+
+    var modelName = Blog.schema.name;
+    var fieldsMap = Blog.schema.fields;
+    
+    List<String> fieldsList = [];
+    List<String> funcParamList = [];
+    List<String> statementParamList = [];
+    Map<String, dynamic> variables = {};
+    
+    print(Blog.schema.toJson());
+
+    if (fieldsMap != null) {
+      fieldsMap.forEach((key, value) { 
+        // DECISION: exclude nested properties?
+        if(value.association == null)
+          fieldsList.add(key);
+
+        // need to know how to accruately exclude ids since types do not match
+        if(value.isRequired) {
+          funcParamList.add("\$$key: ${value.name == 'id' ? 'ID' : ModelMutation.getModelType(value.type.fieldType)}!");
+          statementParamList.add("$key: \$$key");
+        }
+      });
+    }
+
+    String doc = '''mutation Create$modelName(${funcParamList.join(", ")}) {
+        create$modelName(input: {${statementParamList.join(", ")}}) {
+          ${fieldsList.join('\n\t')}
+        }
+      }
+    ''';
+
+
+    fieldsMap.forEach((key, value) {
+      if(updatedBlog.toJson()[key] != null)
+        variables[key] = updatedBlog.toJson()[key];
+    });
+
+    // print("createBlog Doc: " + doc);
+    // print("createBlog Var: " + variables.toString()); // id is included but gets overriden by appsync
+
+    return GraphQLRequest<String>(document: doc, variables: variables);
+  }
+
   void _updateBlog() async{
     try {
-      String graphQLDocument = '''mutation UpdateBlog(\$id: ID!, \$name: String!) {
-            updateBlog(input: {id: \$id, name: \$name}) {
-              id
-              name
-              createdAt
-            }
-          }''';
-      var variables = {
-        "name": _updateContentTextController.text,
-        "id": _blogTarget
-      };
-      var request = GraphQLRequest<String>(document: graphQLDocument, variables: variables);
-
-      var operation = Amplify.API.mutate(request: request);
+      Blog updatedBlog = Blog(id: _blogTarget, name: _updateContentTextController.text);
+      var req = await pocBlogUpdate(updatedBlog);
+      var operation = Amplify.API.mutate(request: req);
       var response = await operation.response;
 
       var data = response.data != null ? response.data : response.errors[0].message;
@@ -566,6 +602,11 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  /*
+    *
+    *  Template
+    *
+  */
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -648,7 +689,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         )   
                     ],),
                   ),
-                  Padding(padding: EdgeInsets.all(15.0)),
+                  Padding(padding: EdgeInsets.all(10.0)),
                   Column( 
                     children: [
                     Container (
@@ -668,13 +709,13 @@ class _MyHomePageState extends State<MyHomePage> {
                           )
                       ],),
                     ),
-                    Padding(padding: EdgeInsets.all(15.0)),
+                    Padding(padding: EdgeInsets.all(10.0)),
                     Container(
                       decoration: BoxDecoration(border: Border.all(color: Colors.black54)), 
                       padding: const EdgeInsets.all(20),
                       child: Column(
                         children: [
-                          Text('Query',
+                          Text('BLOGS',
                             textAlign: TextAlign.center,
                             textScaleFactor: 1.5,
                             style: TextStyle(
@@ -687,144 +728,124 @@ class _MyHomePageState extends State<MyHomePage> {
                             children: [
                               ElevatedButton(
                                 onPressed: _queryBlogs,
-                                child: Text('Blog'),
+                                child: Text('Get'),
                               ),
                               ElevatedButton(
-                                onPressed: _queryPosts,
-                                child: Text('Post'),
-                              ),
-                              ElevatedButton(
-                                onPressed: _queryComments,
-                                child: Text('Comment'),
-                              )
-                          ],)
-                      ],),
-                    ),
-                    Padding(padding: EdgeInsets.all(15.0)),
-                    Container(
-                      decoration: BoxDecoration(border: Border.all(color: Colors.black54)), 
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        children: [
-                          Text('CREATE',
-                            textAlign: TextAlign.center,
-                            textScaleFactor: 1.5,
-                            style: TextStyle(
-                              color: Colors.black
-                            ),
-                          ),
-                          Padding(padding: EdgeInsets.only(top: 10.0)),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  primary: Colors.green
-                                ),
                                 onPressed: _createBlog,
-                                child: Text('Blog'),
-                              ),
-                              ElevatedButton(
                                 style: ElevatedButton.styleFrom(
                                   primary: Colors.green
                                 ),
-                                onPressed: _createPost,
-                                child: Text('Post'),
+                                child: Text('Create'),
                               ),
                               ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  primary: Colors.green
-                                ),
-                                onPressed: _createComment,
-                                child: Text('Comment'),
-                              )
-                          ],)
-                      ],),
-                    ),
-                    Padding(padding: EdgeInsets.all(15.0)),
-                    Container(
-                      decoration: BoxDecoration(border: Border.all(color: Colors.black54)), 
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        children: [
-                          Text('UPDATE',
-                            textAlign: TextAlign.center,
-                            textScaleFactor: 1.5,
-                            style: TextStyle(
-                              color: Colors.black
-                            ),
-                          ),
-                          Padding(padding: EdgeInsets.only(top: 10.0)),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  primary: Colors.amber
-                                ),
                                 onPressed: _updateBlog,
-                                child: Text('Blog'),
-                              ),
-                              ElevatedButton(
                                 style: ElevatedButton.styleFrom(
                                   primary: Colors.amber
                                 ),
-                                onPressed: _updatePost,
-                                child: Text('Post'),
+                                child: Text('Update'),
                               ),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  primary: Colors.amber
-                                ),
-                                onPressed: _updateComment,
-                                child: Text('Comment'),
-                              )
-                          ],)
-                      ],),
-                    ),
-                    Padding(padding: EdgeInsets.all(15.0)),
-                    Container(
-                      decoration: BoxDecoration(border: Border.all(color: Colors.black54)), 
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        children: [
-                          Text('DELETE',
-                            textAlign: TextAlign.center,
-                            textScaleFactor: 1.5,
-                            style: TextStyle(
-                              color: Colors.black
-                            ),
-                          ),
-                          Padding(padding: EdgeInsets.only(top: 10.0)),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
                               ElevatedButton(
                                 style: ElevatedButton.styleFrom(
                                   primary: Colors.red
                                 ),
                                 onPressed: _deleteBlog,
-                                child: Text('Blog'),
+                                child: Text('Delete'),
+                              )
+                          ],)
+                      ],),
+                    ),
+                    Padding(padding: EdgeInsets.all(10.0)),
+                    Container(
+                      decoration: BoxDecoration(border: Border.all(color: Colors.black54)), 
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        children: [
+                          Text('POSTS',
+                            textAlign: TextAlign.center,
+                            textScaleFactor: 1.5,
+                            style: TextStyle(
+                              color: Colors.black
+                            ),
+                          ),
+                          Padding(padding: EdgeInsets.only(top: 10.0)),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              ElevatedButton(
+                                onPressed: _queryPosts,
+                                child: Text('Get'),
+                              ),
+                              ElevatedButton(
+                                onPressed: _createPost,
+                                style: ElevatedButton.styleFrom(
+                                  primary: Colors.green
+                                ),
+                                child: Text('Create'),
+                              ),
+                              ElevatedButton(
+                                onPressed: _updatePost,
+                                style: ElevatedButton.styleFrom(
+                                  primary: Colors.amber
+                                ),
+                                child: Text('Update'),
                               ),
                               ElevatedButton(
                                 style: ElevatedButton.styleFrom(
                                   primary: Colors.red
                                 ),
                                 onPressed: _deletePost,
-                                child: Text('Post'),
+                                child: Text('Delete'),
+                              )
+                          ],)
+                      ],),
+                    ),
+                    Padding(padding: EdgeInsets.all(10.0)),
+                    Container(
+                      decoration: BoxDecoration(border: Border.all(color: Colors.black54)), 
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        children: [
+                          Text('COMMENTS',
+                            textAlign: TextAlign.center,
+                            textScaleFactor: 1.5,
+                            style: TextStyle(
+                              color: Colors.black
+                            ),
+                          ),
+                          Padding(padding: EdgeInsets.only(top: 10.0)),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              ElevatedButton(
+                                onPressed: _queryComments,
+                                child: Text('Get'),
+                              ),
+                              ElevatedButton(
+                                onPressed: _createComment,
+                                style: ElevatedButton.styleFrom(
+                                  primary: Colors.green
+                                ),
+                                child: Text('Create'),
+                              ),
+                              ElevatedButton(
+                                onPressed: _updateComment,
+                                style: ElevatedButton.styleFrom(
+                                  primary: Colors.amber
+                                ),
+                                child: Text('Update'),
                               ),
                               ElevatedButton(
                                 style: ElevatedButton.styleFrom(
                                   primary: Colors.red
                                 ),
                                 onPressed: _deleteComment,
-                                child: Text('Comment'),
+                                child: Text('Delete'),
                               )
                           ],)
                       ],),
                     ),
                   ],),
-                  Padding(padding: EdgeInsets.all(15.0)),
+                  Padding(padding: EdgeInsets.all(10.0)),
                   Container(
                       decoration: BoxDecoration(border: Border.all(color: Colors.black54)), 
                       padding: const EdgeInsets.all(20),
