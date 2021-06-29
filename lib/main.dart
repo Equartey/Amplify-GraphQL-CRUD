@@ -332,58 +332,13 @@ class _MyHomePageState extends State<MyHomePage> {
     * Update Mutations
     *
   */
-  Future<GraphQLRequest<String>> pocBlogUpdate(Blog updatedBlog) async {
-    Blog oldBlog = await _getBlog(_blogTarget);
-    Blog updatedBlog = oldBlog.copyWith(id: oldBlog.getId(), name:  _updateContentTextController.text);
-
-    var modelName = Blog.schema.name;
-    var fieldsMap = Blog.schema.fields;
-    
-    List<String> fieldsList = [];
-    List<String> funcParamList = [];
-    List<String> statementParamList = [];
-    Map<String, dynamic> variables = {};
-    
-    print(Blog.schema.toJson());
-
-    if (fieldsMap != null) {
-      fieldsMap.forEach((key, value) { 
-        // DECISION: exclude nested properties?
-        if(value.association == null)
-          fieldsList.add(key);
-
-        // need to know how to accruately exclude ids since types do not match
-        if(value.isRequired) {
-          funcParamList.add("\$$key: ${value.name == 'id' ? 'ID' : ModelMutation.getModelType(value.type.fieldType)}!");
-          statementParamList.add("$key: \$$key");
-        }
-      });
-    }
-
-    String doc = '''mutation Create$modelName(${funcParamList.join(", ")}) {
-        create$modelName(input: {${statementParamList.join(", ")}}) {
-          ${fieldsList.join('\n\t')}
-        }
-      }
-    ''';
-
-
-    fieldsMap.forEach((key, value) {
-      if(updatedBlog.toJson()[key] != null)
-        variables[key] = updatedBlog.toJson()[key];
-    });
-
-    // print("createBlog Doc: " + doc);
-    // print("createBlog Var: " + variables.toString()); // id is included but gets overriden by appsync
-
-    return GraphQLRequest<String>(document: doc, variables: variables);
-  }
 
   void _updateBlog() async{
     try {
-      Blog updatedBlog = Blog(id: _blogTarget, name: _updateContentTextController.text);
-      var req = await pocBlogUpdate(updatedBlog);
-      var operation = Amplify.API.mutate(request: req);
+      Blog oldBlog = await _getBlog(_blogTarget);
+      Blog newBlog = oldBlog.copyWith(id: oldBlog.getId(), name:  _updateContentTextController.text);
+
+      var operation = Amplify.API.mutate(request: ModelMutation.update(newBlog));
       var response = await operation.response;
 
       var data = response.data != null ? response.data : response.errors[0].message;
@@ -405,22 +360,10 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _updatePost() async{
     try {
-      String graphQLDocument =
-        '''mutation UpdatePost(\$title: String!, \$id:ID!) {
-            updatePost(input: {title: \$title, id: \$id}) {
-              createdAt
-              id
-              title
-            }
-          }''';
-      var variables = {
-        "title": _updateContentTextController.text,
-        "id": _postTarget,
-      };
+      Post oldPost = await _getPost(_postTarget);
+      Post newPost = oldPost.copyWith(id: oldPost.getId(), title:  _updateContentTextController.text);
 
-      var request = GraphQLRequest<String>(document: graphQLDocument, variables: variables);
-
-      var operation = Amplify.API.mutate(request: request);
+      var operation = Amplify.API.mutate(request: ModelMutation.update(newPost));
       var response = await operation.response;
 
       var data = response.data != null ? response.data : response.errors[0].message;
@@ -442,29 +385,10 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _updateComment() async{
     try {
-      String graphQLDocument =
-        '''mutation UpdateComment(\$content: String!, \$id: ID!) {
-            updateComment(input: {content: \$content, id: \$id}) {
-              id
-              content
-              post {
-                id
-                title
-                blog {
-                  id
-                  name
-                }
-              }
-            }
-          }''';
-      print("VARIABLES:" + _updateContentTextController.text + ":" + _updateContentTextController.text);
-      var variables = {
-        "content": _updateContentTextController.text,
-        "id": _commentTarget,
-      };
-      var request = GraphQLRequest<String>(document: graphQLDocument, variables: variables);
+      Comment oldComment = await _getComment(_commentTarget);
+      Comment newComment = oldComment.copyWith(id: oldComment.getId(), content:  _updateContentTextController.text);
 
-      var operation = Amplify.API.mutate(request: request);
+      var operation = Amplify.API.mutate(request: ModelMutation.update(newComment));
       var response = await operation.response;
 
       var data = response.data != null ? response.data : response.errors[0].message;

@@ -1,5 +1,6 @@
 import 'package:amplify_api/amplify_api.dart';
 import 'package:amplify_datastore_plugin_interface/amplify_datastore_plugin_interface.dart';
+import 'package:graphql_demo_1/ModelQuery.dart';
 import 'package:graphql_demo_1/models/ModelProvider.dart';
 import 'package:amplify_datastore_plugin_interface/src/types/models/model_association.dart';
 class ModelMutation {
@@ -82,6 +83,52 @@ class ModelMutation {
 
     print("create$modelName Doc: " + doc);
     print("create$modelName Var: " + variables.toString()); // id is included but gets overriden by appsync
+
+    return GraphQLRequest<String>(document: doc, variables: variables);
+  }
+
+  static GraphQLRequest<String> update(Model model) {
+    ModelSchema schema = getSchema(model.getInstanceType());
+
+    var modelName = schema.name;
+    var fieldsMap = schema.fields;
+
+    List<String> fieldsList = [];
+    List<String> funcParamList = [];
+    List<String> statementParamList = [];
+    Map<String, dynamic> variables = {};
+    
+    print(Blog.schema.toJson());
+
+    if (fieldsMap != null) {
+      fieldsMap.forEach((key, value) { 
+        // DECISION: exclude nested properties?
+        if(value.association == null)
+          fieldsList.add(key);
+
+        if(value.isRequired) {
+          funcParamList.add("\$$key: ${value.name == 'id' ? 'ID' : ModelMutation.getModelType(value.type.fieldType)}!");
+          statementParamList.add("$key: \$$key");
+        }
+      });
+    }
+
+    String doc = '''mutation Update$modelName(${funcParamList.join(", ")}) {
+        update$modelName(input: {${statementParamList.join(", ")}}) {
+          ${fieldsList.join('\n')}
+        }
+      }
+    ''';
+
+
+    fieldsMap.forEach((key, value) {
+      if(model.toJson()[key] != null)
+        variables[key] = "${model.toJson()[key]}";
+    });
+
+    print("update$modelName Doc: " + doc);
+    print("update$modelName Var: " + variables.toString());
+
 
     return GraphQLRequest<String>(document: doc, variables: variables);
   }
