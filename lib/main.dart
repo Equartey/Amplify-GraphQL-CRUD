@@ -111,7 +111,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<Blog> _getBlog(String id) async{
     try {
-      var operation = Amplify.API.mutate(request: ModelQuery.get(Blog.classType, id));
+      var operation = Amplify.API.query(request: ModelQuery.get(Blog.classType, id));
       var response = await operation.response;
 
       var data = response.data != null ? response.data : response.errors[0].message;
@@ -131,7 +131,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<Post> _getPost(String id) async{
     try {
-      var operation = Amplify.API.mutate(request: ModelQuery.get(Post.classType, id));
+      var operation = Amplify.API.query(request: ModelQuery.get(Post.classType, id));
       var response = await operation.response;
 
       var data = response.data != null ? response.data : response.errors[0].message;
@@ -151,7 +151,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<Comment> _getComment(String id) async{
     try {
-      var operation = Amplify.API.mutate(request: ModelQuery.get(Comment.classType, id));
+      var operation = Amplify.API.query(request: ModelQuery.get(Comment.classType, id));
       var response = await operation.response;
 
       var data = response.data != null ? response.data : response.errors[0].message;
@@ -255,7 +255,6 @@ class _MyHomePageState extends State<MyHomePage> {
     try {
 
       Blog blog = Blog(name: _updateContentTextController.text);
-
       var operation = Amplify.API.mutate(request: ModelMutation.create(blog));
       var response = await operation.response;
 
@@ -492,19 +491,8 @@ class _MyHomePageState extends State<MyHomePage> {
   */
   void _deleteBlog() async{
     try {
-      String graphQLDocument = '''mutation DeleteBlog(\$id: ID!) {
-            deleteBlog(input: {id: \$id}) {
-              id
-              name
-              createdAt
-            }
-          }''';
-      var variables = {
-        "id": _blogTarget
-      };
-      var request = GraphQLRequest<String>(document: graphQLDocument, variables: variables);
-
-      var operation = Amplify.API.mutate(request: request);
+      Blog blog = await _getBlog(_blogTarget);
+      var operation = Amplify.API.mutate(request: ModelMutation.delete(blog));
       var response = await operation.response;
 
       var data = response.data != null ? response.data : response.errors[0].message;
@@ -526,21 +514,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _deletePost() async{
     try {
-      String graphQLDocument =
-        '''mutation DeletePost(\$id:ID!) {
-            deletePost(input: {id: \$id}) {
-              createdAt
-              id
-              title
-            }
-          }''';
-      var variables = {
-        "id": _postTarget,
-      };
-
-      var request = GraphQLRequest<String>(document: graphQLDocument, variables: variables);
-
-      var operation = Amplify.API.mutate(request: request);
+      Post post = await _getPost(_postTarget);
+      var operation = Amplify.API.mutate(request: ModelMutation.delete(post));
       var response = await operation.response;
 
       var data = response.data != null ? response.data : response.errors[0].message;
@@ -562,27 +537,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _deleteComment() async{
     try {
-      String graphQLDocument =
-        '''mutation deleteComment(\$id: ID!) {
-            deleteComment(input: {id: \$id}) {
-              id
-              content
-              post {
-                id
-                title
-                blog {
-                  id
-                  name
-                }
-              }
-            }
-          }''';
-      var variables = {
-        "id": _commentTarget,
-      };
-      var request = GraphQLRequest<String>(document: graphQLDocument, variables: variables);
-
-      var operation = Amplify.API.mutate(request: request);
+      Comment comment = await _getComment(_commentTarget);
+      var operation = Amplify.API.mutate(request: ModelMutation.delete(comment));
       var response = await operation.response;
 
       var data = response.data != null ? response.data : response.errors[0].message;

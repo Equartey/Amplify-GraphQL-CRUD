@@ -87,9 +87,29 @@ class ModelMutation {
   }
 
   static GraphQLRequest<String> delete(Model model) {
+    ModelSchema schema = getSchema(model.getInstanceType());
 
+    var modelName = schema.name;
+    var fieldsMap = schema.fields;
 
-    // return GraphQLRequest<String>(document: doc, variables: variables);
-    return null;
+    List<String> fieldsList = [];
+    if (fieldsMap != null) {
+      fieldsMap.forEach((key, value) { 
+        if(value.association == null)
+          fieldsList.add(key);
+      });
+    }
+    
+
+    String doc = '''mutation Delete$modelName(\$id: ID!) {
+      delete$modelName(input: {id: \$id}) {
+        ${fieldsList.join('\n')}
+      }
+    }
+    ''';
+
+    var variables = { "id": model.getId() };
+
+    return GraphQLRequest<String>(document: doc, variables: variables);
   }
 }
